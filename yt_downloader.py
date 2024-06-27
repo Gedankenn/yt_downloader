@@ -1,51 +1,88 @@
-from pytube import YouTube
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_audio
+#!/usr/bin/env python3
+
 import os
+import sys
+import youtube_dl as ydl
 
-def download_youtube_video(url, output_path=""):
-    try:
-        # Create a YouTube object
-        yt = YouTube(url)
+def download_yt_video(url):
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': '%(title)s.%(ext)s',
+    }
+    ydl.YoutubeDL(ydl_opts).download([url])
 
-        # Get the highest resolution stream
-        video_stream = yt.streams.get_highest_resolution()
+def download_yt_playlist(url):
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'yes-playlist': True,
+    }
+    ydl.YoutubeDL(ydl_opts).download([url])
 
-        # Download the video
-        print("Downloading video...")
-        video_stream.download(output_path)
-        print("Video downloaded successfully!")
+def download_yt_audio(url):
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+    ydl.YoutubeDL(ydl_opts).download([url])
 
-        # Convert video to audio (MP3)
-        video_filename = video_stream.default_filename
-        audio_filename = video_filename.split(".")[0] + ".mp3"
-        video_path = os.path.join(output_path, video_filename)
-        audio_path = os.path.join(output_path, audio_filename)
+def help():
+    print("Usage: yt_downloader.py [URL] [OPTIONS]")
+    print("Options:")
+    print("    -h, --help: Display this help message")
+    print("    -p, --playlist: Download a playlist")
+    print("    -v, --video: Download a single video")
+    print("    -a, --audio: Download audio only")
+    print("Example: yt_downloader.py https://www.youtube.com/watch?v=video_id")
 
-        print("Converting video to MP3...")
-        ffmpeg_extract_audio(video_path, audio_path)
-        print("Conversion to MP3 completed!")
 
-        # Remove the original video file
-        os.remove(video_path)
-        print("Original video file removed.")
+def main():
+    if len(sys.argv) < 2:
+        url = input("Enter the URL: ")
+        option = input("Enter the option: ")
+        if option in ("-h", "--help"):
+            help()
+            sys.exit(0)
+        if option in ("-v", "--video"):
+            download_yt_video(url)
+            sys.exit(0)
 
-        return audio_path
+        if option in ("-p", "--playlist"):
+            download_yt_playlist(url)
+            sys.exit(0)
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        if option in ("-a", "--audio"):
+            download_yt_audio(url)
+            sys.exit(0)
+
+        print("Error: Invalid option")
+        help()
+        sys.exit(1)
+
+    if sys.argv[1] in ("-h", "--help"):
+        help()
+        sys.exit(0)
+
+    if sys.argv[1] in ("-v", "--video"):
+        download_yt_video(sys.argv[2])
+        sys.exit(0)
+
+    if sys.argv[1] in ("-p", "--playlist"):
+        download_yt_playlist(sys.argv[2])
+        sys.exit(0)
+
+    if sys.argv[1] in ("-a", "--audio"):
+        download_yt_audio(sys.argv[2])
+        sys.exit(0)
+
+    print("Error: Invalid option")
+    help()
+    sys.exit(1)
 
 if __name__ == "__main__":
-    # Input YouTube URL
-    youtube_url = input("Enter YouTube video URL: ")
-
-    # Output path (default is the current working directory)
-    output_directory = input("Enter output directory (press Enter for current directory): ").strip() or "."
-
-    # Download and convert to MP3
-    mp3_file_path = download_youtube_video(youtube_url, output_directory)
-
-    if mp3_file_path:
-        print(f"MP3 file saved at: {mp3_file_path}")
-    else:
-        print("Failed to download and convert the YouTube video.")
+    main()
